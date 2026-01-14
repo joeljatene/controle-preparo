@@ -1,0 +1,126 @@
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+
+# --- Configuração da Página ---
+st.set_page_config(
+    page_title="Controle de Produção de Chá",
+    page_icon="🍃",
+    layout="centered"
+)
+
+# --- Título e Cabeçalho ---
+st.title("🍃 Controle de Produção")
+st.caption("Monitoramento de Extração e Apuro")
+
+# Gerar ID do Lote baseado na data/hora se não houver um
+if 'lote_id' not in st.session_state:
+    st.session_state.lote_id = datetime.now().strftime("%Y%m%d-%H%M")
+
+with st.expander("📝 Dados do Lote", expanded=True):
+    col1, col2 = st.columns(2)
+    lote = col1.text_input("ID do Lote", value=st.session_state.lote_id)
+    data = col2.date_input("Data", datetime.now())
+
+st.divider()
+
+# --- FASE 1: EXTRAÇÃO (COZIMENTO) ---
+st.header("1. Fase de Extração")
+st.info("Insira a quantidade retirada de cada panela por rodada.")
+
+# Definindo valores padrão esperados
+padrao_r1 = 30.0
+padrao_r2 = 20.0
+padrao_r3 = 15.0
+
+# Criação de Abas para facilitar a visualização no celular
+tab1, tab2, tab3 = st.tabs(["Rodada 1 (30L)", "Rodada 2 (20L)", "Rodada 3 (15L)"])
+
+total_liquido = 0.0
+
+# --- Rodada 1 ---
+with tab1:
+    st.write("### 1ª Rodada - Expectativa: 30L/panela")
+    r1_cols = st.columns(3) # Grid de 3 colunas
+    soma_r1 = 0
+    valores_r1 = []
+    for i in range(1, 7):
+        # Distribui os inputs nas colunas
+        with r1_cols[(i-1)%3]:
+            val = st.number_input(f"P{i}", min_value=0.0, value=padrao_r1, step=0.5, key=f"r1_p{i}")
+            valores_r1.append(val)
+            soma_r1 += val
+    st.metric(label="Total Rodada 1", value=f"{soma_r1:.1f} L")
+
+# --- Rodada 2 ---
+with tab2:
+    st.write("### 2ª Rodada - Expectativa: 20L/panela")
+    r2_cols = st.columns(3)
+    soma_r2 = 0
+    valores_r2 = []
+    for i in range(1, 7):
+        with r2_cols[(i-1)%3]:
+            val = st.number_input(f"P{i}", min_value=0.0, value=padrao_r2, step=0.5, key=f"r2_p{i}")
+            valores_r2.append(val)
+            soma_r2 += val
+    st.metric(label="Total Rodada 2", value=f"{soma_r2:.1f} L")
+
+# --- Rodada 3 ---
+with tab3:
+    st.write("### 3ª Rodada - Expectativa: 15L/panela")
+    r3_cols = st.columns(3)
+    soma_r3 = 0
+    valores_r3 = []
+    for i in range(1, 7):
+        with r3_cols[(i-1)%3]:
+            val = st.number_input(f"P{i}", min_value=0.0, value=padrao_r3, step=0.5, key=f"r3_p{i}")
+            valores_r3.append(val)
+            soma_r3 += val
+    st.metric(label="Total Rodada 3", value=f"{soma_r3:.1f} L")
+
+# --- Consolidação da Extração ---
+total_bruto = soma_r1 + soma_r2 + soma_r3
+
+st.markdown("---")
+st.subheader("📊 Resumo da Extração")
+col_res1, col_res2 = st.columns(2)
+col_res1.metric("Volume Total Bruto", f"{total_bruto:.1f} Litros")
+
+# Calcular média por panela apenas para curiosidade
+media_panela = total_bruto / 6
+col_res2.metric("Média por Panela", f"{media_panela:.1f} Litros")
+
+st.divider()
+
+# --- FASE 2: APURO (REDUÇÃO) ---
+st.header("2. Fase de Apuro")
+
+# Cálculos das Metas
+meta_min = total_bruto * 0.20
+meta_max = total_bruto * 0.25
+
+st.warning(f"🎯 **Sua Meta de Apuro (20% a 25%)**")
+
+# Exibindo as metas grandes para ver de longe
+m_col1, m_col2 = st.columns(2)
+m_col1.metric("Meta Mínima (20%)", f"{meta_min:.1f} L")
+m_col2.metric("Meta Máxima (25%)", f"{meta_max:.1f} L")
+
+st.markdown("### Resultado Final")
+volume_final = st.number_input("Volume Final Obtido (Litros)", min_value=0.0, step=0.5, format="%.1f")
+
+if volume_final > 0:
+    percentual_atingido = (volume_final / total_bruto) * 100
+    
+    st.write(f"Percentual atingido: **{percentual_atingido:.1f}%**")
+    
+    if 20 <= percentual_atingido <= 25:
+        st.success("✅ PARABÉNS! O apuro está dentro do padrão (20-25%).")
+    elif percentual_atingido < 20:
+        st.error("⚠️ ATENÇÃO: Apurou demais! (Abaixo de 20%)")
+    else:
+        st.error("⚠️ ATENÇÃO: Falta apurar mais! (Acima de 25%)")
+
+    # Botão Simulado de Salvar
+    if st.button("💾 Salvar Lote"):
+        st.toast(f"Lote {lote} salvo com sucesso!", icon="✅")
